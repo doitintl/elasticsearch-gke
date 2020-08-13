@@ -1,3 +1,4 @@
+---
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
@@ -24,6 +25,10 @@ spec:
       node.data: false
       node.ingest: false
       node.ml: false
+      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
+      cluster.routing.allocation.awareness.attributes: zone
+      # https://www.elastic.co/guide/en/elasticsearch/reference/7.8/modules-cluster.html#forced-awareness
+      cluster.routing.allocation.awareness.force.zone.values: us-central1-a,us-central1-b
     podTemplate:
       spec:
         initContainers:
@@ -85,7 +90,9 @@ spec:
       node.data: true
       node.ingest: false
       node.ml: false
+      # Mark node's zone
       node.attr.zone: us-central1-a
+      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
       cluster.routing.allocation.awareness.attributes: zone
     podTemplate:
       spec:
@@ -144,7 +151,9 @@ spec:
       node.data: true
       node.ingest: false
       node.ml: false
+      # Mark node's zone
       node.attr.zone: us-central1-b
+      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
       cluster.routing.allocation.awareness.attributes: zone
     podTemplate:
       spec:
@@ -194,3 +203,19 @@ spec:
           requests:
             storage: 100Gi
         storageClassName: balanced
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: es-uluru-coordinator-nodes
+spec:
+  ports:
+    - name: https
+      port: 9200
+      targetPort: 9200
+  selector:
+    elasticsearch.k8s.elastic.co/cluster-name: "uluru"
+    elasticsearch.k8s.elastic.co/node-master: "false"
+    elasticsearch.k8s.elastic.co/node-data: "false"
+    elasticsearch.k8s.elastic.co/node-ingest: "false"
+    elasticsearch.k8s.elastic.co/node-ml: "false"
