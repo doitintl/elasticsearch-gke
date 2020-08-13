@@ -1,0 +1,196 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: uluru
+spec:
+  version: 7.8.1
+  secureSettings:
+  - secretName: gcs-credentials  # Used for GCS backups
+    entries:
+    - key: es-uluru-gcs.svcacc.key.json
+      path: gcs.client.default.credentials_file
+  updateStrategy:
+    changeBudget:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  nodeSets:
+
+  # Master nodes
+  - name: master
+    count: 3
+    config:
+      node.master: true
+      node.data: false
+      node.ingest: false
+      node.ml: false
+    podTemplate:
+      spec:
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+        - name: install-plugins
+          command: ["sh", "-c", "bin/elasticsearch-plugin install --batch repository-gcs repository-s3"]
+        nodeSelector:
+          workload: es-master
+        affinity:
+          # One pod per node
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+              topologyKey: kubernetes.io/hostname
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: balanced
+
+  # Coordinator nodes (to run queries against)
+  - name: coordinator
+    count: 2
+    config:
+      node.master: false
+      node.data: false
+      node.ingest: false
+      node.ml: false
+    podTemplate:
+      spec:
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+        - name: install-plugins
+          command: ["sh", "-c", "bin/elasticsearch-plugin install --batch repository-gcs repository-s3"]
+        nodeSelector:
+          workload: apps
+        volumes:
+        - name: elasticsearch-data
+          emptyDir: {}
+
+  # Data nodes - zone-a
+  - name: data-a
+    count: 2
+    config:
+      node.master: false
+      node.data: true
+      node.ingest: false
+      node.ml: false
+      node.attr.zone: us-central1-a
+      cluster.routing.allocation.awareness.attributes: zone
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms7g -Xmx7g
+          resources:
+            requests:
+              memory: 10Gi
+              cpu: 1
+            limits:
+              memory: 14Gi
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+        - name: install-plugins
+          command: ["sh", "-c", "bin/elasticsearch-plugin install --batch repository-gcs repository-s3"]
+        affinity:
+          # One pod per node
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+              topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: failure-domain.beta.kubernetes.io/zone
+                  operator: In
+                  values:
+                  - us-central1-a
+        nodeSelector:
+          workload: es-data
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: balanced
+
+  # Data nodes - zone-b
+  - name: data-b
+    count: 2
+    config:
+      node.master: false
+      node.data: true
+      node.ingest: false
+      node.ml: false
+      node.attr.zone: us-central1-b
+      cluster.routing.allocation.awareness.attributes: zone
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms7g -Xmx7g
+          resources:
+            requests:
+              memory: 10Gi
+              cpu: 1
+            limits:
+              memory: 14Gi
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144"]
+        - name: install-plugins
+          command: ["sh", "-c", "bin/elasticsearch-plugin install --batch repository-gcs repository-s3"]
+        affinity:
+          # One pod per node
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+              topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: failure-domain.beta.kubernetes.io/zone
+                  operator: In
+                  values:
+                  - us-central1-b
+        nodeSelector:
+          workload: es-data
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: balanced
