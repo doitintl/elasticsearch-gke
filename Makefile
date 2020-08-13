@@ -25,6 +25,8 @@ SVCACC_KEY_FILE = $(SVCACC).svcacc.key.json
 # SVCACC_KEY_FILE = gcs.client.default.credentials_file
 GCS_BUCKET = es-uluru-snapshots
 
+TEXT_INDEX_NAME = test
+
 gke-es-master-pool-create:
 	gcloud container node-pools create es-master --cluster=$(GKE_NAME) \
 		--region=$(REGION) \
@@ -91,7 +93,6 @@ es-deploy:
 	kubectl create secret generic gcs-credentials --from-file=$(SVCACC_KEY_FILE) --dry-run -o yaml | \
 	   	kubectl apply -f -
 	kubectl apply -f k8s/elasticsearch.yaml
-	kubectl apply -f k8s/service.yaml
 	kubectl apply -f k8s/kibana.yaml
 
 cerebro-deploy:
@@ -99,12 +100,23 @@ cerebro-deploy:
 	curl -sSfL https://github.com/lmenezes/cerebro/raw/7a3815d8f5fb0097cd84cc644716da77205615c4/conf/application.conf | \
 		sed -e 's|^secret = .*|secret = "$(shell xxd -l 48 -p -c 256  /dev/random)"|' \
 		    -e '/^secret/a# It is not really secure to store the above in configmap, but at least better than using default secret' \
-		    -e '/^hosts/a\  {\n    host = "https://es-uluru-coordinator-nodes:9200"\n    auth = {\n      username = elastic\n      password = $(shell kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)\n    }\n  }' \
+		    -e '/^hosts/a\  {\n    host = "https://es-uluru-coordinator-nodes:9200"\n  }' \
 				-e '$$a \\n# Quick workaround to connect to es cluster through HTTPS\nplay.ws.ssl.loose.acceptAnyCertificate = true' | \
 		kubectl create --dry-run -o yaml configmap cerebro --from-file=application.conf=/dev/stdin | \
 		kubectl apply -f -
 	kubectl apply -f k8s/cerebro.yaml
 
+get-creds:
+	@echo username: elastic
+	@echo password: $(shell kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)
+
+port-forward:
+	@echo "Run:\n  bash -c 'kubectl port-forward service/uluru-kb-http 5601 & kubectl port-forward service/cerebro 9000 & kubectl port-forward service/es-uluru-coordinator-nodes 9200'"
+
+create-index:
+	curl -sSf -k -X PUT -u elastic:$$(kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode) \
+		-H 'Content-type: application/json' \
+		https://localhost:9200/$(TEXT_INDEX_NAME) -d '{"settings": {"number_of_shards": 6, "number_of_replicas": 1}}' && echo
 
 # FIXME: Define GCP repo in the ES
 # https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-snapshots.html#k8s-create-repository
