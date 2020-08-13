@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cerebro
+  name: cerebro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cerebro
+  template:
+    metadata:
+      labels:
+        app: cerebro
+    spec:
+      containers:
+      - image: lmenezes/cerebro:0.9.2
+        name: cerebro
+        args:
+        - -Dconfig.file=/etc/cerebro/application.conf
+        env:
+        - name: "CEREBRO_PORT"
+          value: "9000"
+        volumeMounts:
+        - name: conf
+          mountPath: /etc/cerebro
+        ports:
+        - name: http
+          containerPort: 9000
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 120
+      volumes:
+      - name: conf
+        configMap:
+          name: cerebro
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerebro
+spec:
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http
+  selector:
+    app: cerebro

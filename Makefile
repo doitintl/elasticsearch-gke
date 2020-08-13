@@ -92,6 +92,18 @@ es-deploy:
 	   	kubectl apply -f -
 	kubectl apply -f k8s/elasticsearch.yaml
 	kubectl apply -f k8s/service.yaml
+	kubectl apply -f k8s/kibana.yaml
+
+cerebro-deploy:
+	# Pinned to cerebro 0.9.2
+	curl -sSfL https://github.com/lmenezes/cerebro/raw/7a3815d8f5fb0097cd84cc644716da77205615c4/conf/application.conf | \
+		sed -e 's|^secret = .*|secret = "$(shell xxd -l 48 -p -c 256  /dev/random)"|' \
+		    -e '/^secret/a# It is not really secure to store the above in configmap, but at least better than using default secret' \
+		    -e '/^hosts/a\  {\n    host = "https://es-uluru-coordinator-nodes:9200"\n    auth = {\n      username = elastic\n      password = $(shell kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)\n    }\n  }' \
+				-e '$$a \\n# Quick workaround to connect to es cluster through HTTPS\nplay.ws.ssl.loose.acceptAnyCertificate = true' | \
+		kubectl create --dry-run -o yaml configmap cerebro --from-file=application.conf=/dev/stdin | \
+		kubectl apply -f -
+	kubectl apply -f k8s/cerebro.yaml
 
 
 # FIXME: Define GCP repo in the ES
