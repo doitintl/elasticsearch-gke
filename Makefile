@@ -83,13 +83,11 @@ gcs-bucket:
 	gsutil uniformbucketlevelaccess set on gs://$(GCS_BUCKET)
 	gsutil iam ch serviceAccount:$(SVCACC_EMAIL):roles/storage.objectAdmin
 
-sc-deploy:
-	kubectl apply -f k8s/storage-class.yaml
-
 eck-deploy:
 	kubectl apply -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
 
 es-deploy:
+	kubectl apply -f k8s/storage-class.yaml
 	kubectl create secret generic gcs-credentials --from-file=$(SVCACC_KEY_FILE) --dry-run -o yaml | \
 	   	kubectl apply -f -
 	kubectl apply -f k8s/elasticsearch.yaml
