@@ -67,7 +67,7 @@ gke-create:
 	$(MAKE) gke-delete-default-pool
 
 gke-delete:
-	kubectl delete -f k8s/elasticsearch.yaml
+	-$(MAKE) es-delete
 	sleep 1m
 	gcloud container clusters delete --quiet $(GKE_NAME) --region=$(REGION) ||:
 
@@ -86,12 +86,19 @@ gcs-bucket:
 eck-deploy:
 	kubectl apply -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
 
+eck-delete:
+	kubectl delete -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
+
 es-deploy:
 	kubectl apply -f k8s/storage-class.yaml
 	kubectl create secret generic gcs-credentials --from-file=$(SVCACC_KEY_FILE) --dry-run -o yaml | \
 	   	kubectl apply -f -
 	kubectl apply -f k8s/elasticsearch.yaml
 	kubectl apply -f k8s/kibana.yaml
+
+es-delete:
+	kubectl delete -f k8s/elasticsearch.yaml
+	kubectl delete -f k8s/kibana.yaml
 
 cerebro-deploy:
 	# Pinned to cerebro 0.9.2
@@ -103,6 +110,10 @@ cerebro-deploy:
 		kubectl create --dry-run -o yaml configmap cerebro --from-file=application.conf=/dev/stdin | \
 		kubectl apply -f -
 	kubectl apply -f k8s/cerebro.yaml
+
+cerebro-delete:
+	kubectl delete -f k8s/cerebro.yaml
+	kubectl delete configmap cerebro
 
 get-creds:
 	@echo username: elastic
