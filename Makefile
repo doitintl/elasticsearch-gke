@@ -147,5 +147,10 @@ create-index:
 		-H 'Content-type: application/json' \
 		https://localhost:9200/$(TEXT_INDEX_NAME) -d '{"settings": {"number_of_shards": 6, "number_of_replicas": 1}}' && echo
 
+create-backup-repo:
+	curl -sSf -k -X PUT -u elastic:$$(make -s get-password) \
+		-H 'Content-type: application/json' \
+		https://localhost:9200/_snapshot/gcs -d '{"type": "gcs", "settings": {"bucket": "$(GCS_BUCKET)", "client": "default"}}' && echo
+
 # FIXME: Define GCP repo in the ES
 # https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-snapshots.html#k8s-create-repository
