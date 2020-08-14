@@ -129,7 +129,10 @@ get-creds:
 	@echo password: $(shell $(MAKE) get-password)
 
 port-forward:
-	@echo "Run:\n  bash -c 'kubectl port-forward service/$(ES_CLUSTER_NAME)-kb-http 5601 & kubectl port-forward service/cerebro 9000 & kubectl port-forward service/es-$(ES_CLUSTER_NAME)-coordinator-nodes 9200'"
+	bash -c 'kubectl port-forward service/$(ES_CLUSTER_NAME)-kb-http 5601 & \
+			 kubectl port-forward service/cerebro 9000 & \
+			 kubectl port-forward service/es-$(ES_CLUSTER_NAME)-coordinator-nodes 9200 & \
+			 wait'
 
 create-index:
 	curl -sSf -k -X PUT -u elastic:$$(make -s get-password) \
