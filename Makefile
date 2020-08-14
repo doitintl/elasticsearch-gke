@@ -1,3 +1,7 @@
+ifeq ($(ES_CLUSTER_NAME),)
+$(error Please define and export ES_CLUSTER_NAME env var)
+endif
+
 REGION = us-central1
 
 ES_DATA_ZONES = "us-central1-a,us-central1-b"
@@ -7,7 +11,6 @@ APPS_ZONES = $(ES_DATA_ZONES)
 
 ECK_VERSION = 1.2.1
 ES_CLUSTER_NAME ?= uluru
-export ES_CLUSTER_NAME
 
 GKE_VERSION = 1.16.11-gke.5
 GKE_NAME = es
