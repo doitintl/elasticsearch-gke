@@ -10,7 +10,7 @@ Running the makefile will get you:
 * Data nodes spread across two zones with ES
  [Shard Allocation Awareness](https://www.elastic.co/guide/en/elasticsearch/reference/current/allocation-awareness.html#allocation-awareness)
   enabled
-* GKE CSI Driver enabled and ES data nodes provisioned with *pd-balanced* disk types
+* GKE CSI Driver enabled and ES data nodes provisioned with *pd-balanced* disk type
 * Snapshot ready with:
   * Provisioned GCS bucket
   * Provisioned GCP service account and proper access level to the above bucket
