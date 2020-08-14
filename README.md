@@ -24,8 +24,8 @@ YAMLs - and I'm well familiar with both ElasticSearch and Kubernetes.
 
 This repo is an attempt to help those who tread on the similar path. The idea is to make
 all YAML configuration in this repo as illustrative as possible and that's the reason
-that nothing is templated in this repo (except ES cluster name), though the current
-ECK CRD schema does cause a fair bit amount of YAML duplication.
+that nothing is templated in this repo (except ES cluster name), though it begs for it
+since the current ECK CRD schema does cause a fair bit of YAML duplication.
 
 ## Enough talking, show me some goodies
 * Decide on a fancy cluster name (alphanumeric and hyphen characters only).
