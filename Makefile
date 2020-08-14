@@ -1,4 +1,3 @@
-PROJECT = zaar-playground
 REGION = us-central1
 
 ES_DATA_ZONES = "us-central1-a,us-central1-b"
