@@ -133,6 +133,9 @@ get-creds:
 	@echo username: elastic
 	@echo password: $(shell $(MAKE) get-password)
 
+get-bucket:
+	@echo $(GCS_BUCKET)
+
 port-forward:
 	bash -c 'kubectl port-forward service/$(ES_CLUSTER_NAME)-kb-http 5601 & \
 			 kubectl port-forward service/cerebro 9000 & \
