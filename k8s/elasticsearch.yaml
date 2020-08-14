@@ -25,7 +25,7 @@ spec:
       node.data: false
       node.ingest: false
       node.ml: false
-      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
+      # Enable shard allocation awareness
       cluster.routing.allocation.awareness.attributes: zone
       # https://www.elastic.co/guide/en/elasticsearch/reference/7.8/modules-cluster.html#forced-awareness
       cluster.routing.allocation.awareness.force.zone.values: us-central1-a,us-central1-b
@@ -92,8 +92,6 @@ spec:
       node.ml: false
       # Mark node's zone
       node.attr.zone: us-central1-a
-      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
-      cluster.routing.allocation.awareness.attributes: zone
     podTemplate:
       spec:
         containers:
@@ -153,8 +151,6 @@ spec:
       node.ml: false
       # Mark node's zone
       node.attr.zone: us-central1-b
-      # Enable shard allocation awareness - should be set both in master and data nodes (contrary to docs)
-      cluster.routing.allocation.awareness.attributes: zone
     podTemplate:
       spec:
         containers:
