@@ -79,8 +79,12 @@ gcs-svcacc-delete:
 
 gcs-bucket:
 	gsutil mb gs://$(GCS_BUCKET)
-	gsutil uniformbucketlevelaccess set on gs://$(GCS_BUCKET)
-	gsutil iam ch serviceAccount:$(SVCACC_EMAIL):roles/storage.objectAdmin
+	# gsutil uniformbucketlevelaccess set on gs://$(GCS_BUCKET)
+	# gsutil iam ch serviceAccount:$(SVCACC_EMAIL):roles/storage.objectAdmin gs://$(GCS_BUCKET)
+	#
+	# Still need to use legacy ACLs until https://github.com/elastic/elasticsearch/pull/60899
+	# is released. Once it does, uncomment the two commands above and remove the line below
+	gsutil iam ch serviceAccount:$(SVCACC_EMAIL):roles/storage.legacyBucketWriter gs://$(GCS_BUCKET)
 
 eck-deploy:
 	kubectl apply -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
