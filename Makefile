@@ -74,14 +74,16 @@ gke-delete:
 	gcloud container clusters delete --quiet $(GKE_NAME) --region=$(REGION) ||:
 
 gcs-svcacc-create:
-	gcloud iam service-accounts create $(SVCACC)
+	gcloud iam service-accounts describe $(SVCACC_EMAIL) >/dev/null 2>&1 || \
+		gcloud iam service-accounts create $(SVCACC)
 	gcloud iam service-accounts keys create --iam-account=$(SVCACC_EMAIL) $(SVCACC_KEY_FILE)
 
 gcs-svcacc-delete:
 	gcloud iam service-accounts delete --quiet $(SVCACC_EMAIL)
 
-gcs-bucket:
-	gsutil mb gs://$(GCS_BUCKET)
+gcs-bucket-create:
+	gsutil ls gs://$(GCS_BUCKET) >/dev/null 2>&1 || \
+		gsutil mb gs://$(GCS_BUCKET)
 	# gsutil uniformbucketlevelaccess set on gs://$(GCS_BUCKET)
 	# gsutil iam ch serviceAccount:$(SVCACC_EMAIL):roles/storage.objectAdmin gs://$(GCS_BUCKET)
 	#
