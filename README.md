@@ -1,8 +1,8 @@
 # elasticsearch-gke
 
 This repository provides a blueprint for creating production grade configuration of
-(Elastic Cloud on Kubernetes)[https://www.elastic.co/guide/en/cloud-on-k8s]
-(later referenced just as "ECK") on GKE.
+[Elastic Cloud on Kubernetes](https://www.elastic.co/guide/en/cloud-on-k8s)
+(later referred just as "ECK") on GKE.
 
 Running the makefile will get you:
 * A GKE cluster with 3 node-pools for master nodes, data nodes, and the rest
