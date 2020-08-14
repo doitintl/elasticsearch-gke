@@ -2,13 +2,13 @@
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
-  name: uluru
+  name: ${ES_CLUSTER_NAME}
 spec:
   version: 7.8.1
   secureSettings:
   - secretName: gcs-credentials  # Used for GCS backups
     entries:
-    - key: es-uluru-gcs.svcacc.key.json
+    - key: es-${ES_CLUSTER_NAME}-gcs.svcacc.key.json
       path: gcs.client.default.credentials_file
   updateStrategy:
     changeBudget:
@@ -46,7 +46,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+                  elasticsearch.k8s.elastic.co/cluster-name: ${ES_CLUSTER_NAME}
               topologyKey: kubernetes.io/hostname
     volumeClaimTemplates:
     - metadata:
@@ -118,7 +118,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+                  elasticsearch.k8s.elastic.co/cluster-name: ${ES_CLUSTER_NAME}
               topologyKey: kubernetes.io/hostname
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -177,7 +177,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  elasticsearch.k8s.elastic.co/cluster-name: uluru
+                  elasticsearch.k8s.elastic.co/cluster-name: ${ES_CLUSTER_NAME}
               topologyKey: kubernetes.io/hostname
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -203,14 +203,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: es-uluru-coordinator-nodes
+  name: es-${ES_CLUSTER_NAME}-coordinator-nodes
 spec:
   ports:
     - name: https
       port: 9200
       targetPort: 9200
   selector:
-    elasticsearch.k8s.elastic.co/cluster-name: "uluru"
+    elasticsearch.k8s.elastic.co/cluster-name: "${ES_CLUSTER_NAME}"
     elasticsearch.k8s.elastic.co/node-master: "false"
     elasticsearch.k8s.elastic.co/node-data: "false"
     elasticsearch.k8s.elastic.co/node-ingest: "false"

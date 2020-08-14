@@ -2,9 +2,12 @@ REGION = us-central1
 
 ES_DATA_ZONES = "us-central1-a,us-central1-b"
 ES_MASTER_ZONES = "us-central1-a,us-central1-b,us-central1-c"
+# Runs Cerebro, Kibana, etc.
 APPS_ZONES = $(ES_DATA_ZONES)
 
 ECK_VERSION = 1.2.1
+ES_CLUSTER_NAME ?= uluru
+export ES_CLUSTER_NAME
 
 GKE_VERSION = 1.16.11-gke.5
 GKE_NAME = es
@@ -15,14 +18,14 @@ APPS_INSTANCE_TYPE = n1-standard-2
 
 ES_DATA_NODES = 2    # per zone
 ES_MASTER_NODES = 1  # per zone
-APPS_NODES = 1  # per zone
+APPS_NODES = 1       # per zone
 
 GCP_PROJECT := $(shell gcloud config get-value core/project)
-SVCACC = es-uluru-gcs
+SVCACC = es-$(ES_CLUSTER_NAME)-gcs
 SVCACC_EMAIL = $(SVCACC)@$(GCP_PROJECT).iam.gserviceaccount.com
 SVCACC_KEY_FILE = $(SVCACC).svcacc.key.json
 # SVCACC_KEY_FILE = gcs.client.default.credentials_file
-GCS_BUCKET = es-uluru-snapshots
+GCS_BUCKET ?= es-$(ES_CLUSTER_NAME)-snapshots
 
 TEXT_INDEX_NAME = test
 
@@ -90,43 +93,46 @@ eck-deploy:
 	kubectl apply -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
 
 eck-delete:
-	kubectl delete -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
+	-kubectl delete -f https://download.elastic.co/downloads/eck/$(ECK_VERSION)/all-in-one.yaml
 
 es-deploy:
 	kubectl apply -f k8s/storage-class.yaml
 	kubectl create secret generic gcs-credentials --from-file=$(SVCACC_KEY_FILE) --dry-run -o yaml | \
 	   	kubectl apply -f -
-	kubectl apply -f k8s/elasticsearch.yaml
-	kubectl apply -f k8s/kibana.yaml
+	envsubst < k8s/elasticsearch.yaml | kubectl apply -f -
+	envsubst < k8s/kibana.yaml | kubectl apply -f -
 
 es-delete:
-	kubectl delete -f k8s/elasticsearch.yaml
-	kubectl delete -f k8s/kibana.yaml
+	-envsubst < k8s/elasticsearch.yaml | kubectl delete -f -
+	-envsubst < k8s/kibana.yaml | kubectl delete -f -
 
 cerebro-deploy:
 	# Pinned to cerebro 0.9.2
 	curl -sSfL https://github.com/lmenezes/cerebro/raw/7a3815d8f5fb0097cd84cc644716da77205615c4/conf/application.conf | \
 		sed -e 's|^secret = .*|secret = "$(shell xxd -l 48 -p -c 256  /dev/random)"|' \
 		    -e '/^secret/a# It is not really secure to store the above in configmap, but at least better than using default secret' \
-		    -e '/^hosts/a\  {\n    host = "https://es-uluru-coordinator-nodes:9200"\n  }' \
+		    -e '/^hosts/a\  {\n    host = "https://es-$(ES_CLUSTER_NAME)-coordinator-nodes:9200"\n  }' \
 				-e '$$a \\n# Quick workaround to connect to es cluster through HTTPS\nplay.ws.ssl.loose.acceptAnyCertificate = true' | \
 		kubectl create --dry-run -o yaml configmap cerebro --from-file=application.conf=/dev/stdin | \
 		kubectl apply -f -
 	kubectl apply -f k8s/cerebro.yaml
 
 cerebro-delete:
-	kubectl delete -f k8s/cerebro.yaml
-	kubectl delete configmap cerebro
+	-kubectl delete -f k8s/cerebro.yaml
+	-kubectl delete configmap cerebro
+
+get-password:
+	@echo $(shell kubectl get secret $(ES_CLUSTER_NAME)-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)
 
 get-creds:
 	@echo username: elastic
-	@echo password: $(shell kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)
+	@echo password: $(shell $(MAKE) get-password)
 
 port-forward:
-	@echo "Run:\n  bash -c 'kubectl port-forward service/uluru-kb-http 5601 & kubectl port-forward service/cerebro 9000 & kubectl port-forward service/es-uluru-coordinator-nodes 9200'"
+	@echo "Run:\n  bash -c 'kubectl port-forward service/$(ES_CLUSTER_NAME)-kb-http 5601 & kubectl port-forward service/cerebro 9000 & kubectl port-forward service/es-$(ES_CLUSTER_NAME)-coordinator-nodes 9200'"
 
 create-index:
-	curl -sSf -k -X PUT -u elastic:$$(kubectl get secret uluru-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode) \
+	curl -sSf -k -X PUT -u elastic:$$(make -s get-password) \
 		-H 'Content-type: application/json' \
 		https://localhost:9200/$(TEXT_INDEX_NAME) -d '{"settings": {"number_of_shards": 6, "number_of_replicas": 1}}' && echo
 

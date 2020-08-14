@@ -1,12 +1,12 @@
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana
 metadata:
-  name: uluru
+  name: ${ES_CLUSTER_NAME}
 spec:
   version: 7.8.1
   count: 1
   elasticsearchRef:
-    name: uluru
+    name: ${ES_CLUSTER_NAME}
   podTemplate:
     spec:
       nodeSelector:
