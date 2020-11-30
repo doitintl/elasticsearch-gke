@@ -34,8 +34,7 @@ since the current ECK CRD schema does cause a fair bit of YAML duplication.
   export ES_CLUSTER_NAME=<your fancy cluster name>
   ```
 * Now run `make gke-create` to create a GKE cluster with all node pools. It takes a while.
-* Create GCS bucket, service account, launch ECK operator and
-* then create your ES cluster & friends by running:
+* Create GCS bucket, service account, launch ECK operator and then create your ES cluster & friends by running:
   ```console
   make gcs-svcacc-create gcs-bucket-create eck-deploy es-deploy cerebro-deploy
   ```
